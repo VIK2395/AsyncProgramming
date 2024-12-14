@@ -4,10 +4,63 @@ C# is synchronous, but we can perform asynchronous task.
 
 - We can mark methods with async keyword.
 - Async methods are intended to be non-bloking operations.
-- `async` and `await` keywords don't cause additional threads to be created. The method runs on currernt synchronization context and uses the calling thread (good for I/O operations as they do not require CPU and we only wait for the result to become available).
+- `async` and `await` keywords don't cause **additional threads to be created**. The method runs on **currernt synchronization context** and the synchronization context decides where to continue excecuting the tail(if SynchronizationContext.Current == null, then the continuation of the async method is scheduled to the thread pool via the default `TaskScheduler`).
+  - I/O operations itself do not require a CPU/thread - we only wait for the result to become available.
   - We can use Task.Run to move CPU-bound work to background thread.
-- We should always use `await` in async methods. When `await` is meet the control returns the method that called the async method. If no await is used no any benefits and the method would work as usual sync method.
+- We should always use `await` in async methods. When `await` is meet the control returns to the method that called the async method. If no `await` is used no any benefits and the method would work as sync method. Without `await` before called async method, the calling method continue execution not waiting for the called async method to return result.  
 - `ConfigureAwait(true)`. Default true. Configures for **the same** synchronization contex/thread to be used **to resume the async method tail after `await`** that created the task. `ConfigureAwait(false)` - says the tail can continue in any synchronization contex/thread from thread pool.
   - `ConfigureAwait(true)` important for the UI thread as only UI thread has access to the UI elements.
 - Console application, like web serves don't have `synchronization contex`. It is null. So `ConfigureAwait` has no effect in them and behave as if `ConfigureAwait(false)`.
 - Under the hood a state machine is used to handle async wait method execution.
+
+```c#
+namespace ConsoleApp
+{
+    internal class Program
+    {
+        static async Task Main(string[] args)
+        {
+            Console.WriteLine($"SynchronizationContext.Current {SynchronizationContext.Current?.ToString() ?? "null"}");
+            Console.WriteLine($"ThreadId1 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("Main. Before DoSomething");
+            await DoSomething();
+            Console.WriteLine($"ThreadId6 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("Main. After DoSomething");
+        }
+
+        static async Task DoSomething()
+        {
+            Console.WriteLine("DoSomething start");
+            Console.WriteLine($"ThreadId2 {Thread.CurrentThread.ManagedThreadId}");
+            await DoSomethingAsync();
+            Console.WriteLine($"ThreadId5 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("DoSomething end");
+        }
+
+        static async Task DoSomethingAsync()
+        {
+            Console.WriteLine("DoSomethingAsync start");
+            Console.WriteLine($"ThreadId3 {Thread.CurrentThread.ManagedThreadId}");
+            await Task.Delay(2000);
+            Console.WriteLine($"ThreadId4 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("DoSomethingAsync end");
+        }
+    }
+}
+```
+Output
+```
+SynchronizationContext.Current null
+ThreadId1 1
+Main. Before DoSomething
+DoSomething start
+ThreadId2 1
+DoSomethingAsync start
+ThreadId3 1
+ThreadId4 4
+DoSomethingAsync end
+ThreadId5 4
+DoSomething end
+ThreadId6 4
+Main. After DoSomething
+```
