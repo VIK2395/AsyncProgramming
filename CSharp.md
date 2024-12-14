@@ -1,6 +1,6 @@
 # async await
 
-C# is synchronous, but we can perform asynchronous task.
+C# is synchronous, but we can perform asynchronous tasks.
 
 - We can mark methods with async keyword.
 - Async methods are intended to be non-bloking operations.
