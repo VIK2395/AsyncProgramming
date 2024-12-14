@@ -165,3 +165,5 @@ Starting application...
 [AsyncContext.Run] After await - Thread ID: 1
 Finished application.
 ```
+
+This demonstrates that `AsyncContext` maintains a single-threaded execution context, **similar to how a UI thread works**.
