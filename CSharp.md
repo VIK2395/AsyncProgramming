@@ -112,3 +112,56 @@ ThreadId3 1
 ThreadId6 1
 Main. After DoSomethingAsync
 ```
+
+# Add synchronization context to console application
+
+Install the Nito.AsyncEx NuGet package
+```bash
+dotnet add package Nito.AsyncEx
+```
+
+```c#
+using Nito.AsyncEx;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        // Log the thread ID in the Main method
+        Console.WriteLine($"[Main] Thread ID: {Thread.CurrentThread.ManagedThreadId}");
+
+        // Run the async context
+        AsyncContext.Run(async () =>
+        {
+            Console.WriteLine($"[AsyncContext.Run] Thread ID: {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("Starting application...");
+
+            // Call an asynchronous method
+            await DoAsyncWork();
+
+            Console.WriteLine($"[AsyncContext.Run] After await - Thread ID: {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("Finished application.");
+        });
+    }
+
+    static async Task DoAsyncWork()
+    {
+        Console.WriteLine($"[DoAsyncWork] Before delay - Thread ID: {Thread.CurrentThread.ManagedThreadId}");
+
+        // Simulate asynchronous work
+        await Task.Delay(1000);
+
+        Console.WriteLine($"[DoAsyncWork] After delay - Thread ID: {Thread.CurrentThread.ManagedThreadId}");
+    }
+}
+```
+Output
+```
+[Main] Thread ID: 1
+[AsyncContext.Run] Thread ID: 1
+Starting application...
+[DoAsyncWork] Before delay - Thread ID: 1
+[DoAsyncWork] After delay - Thread ID: 1
+[AsyncContext.Run] After await - Thread ID: 1
+Finished application.
+```
