@@ -22,28 +22,28 @@ namespace ConsoleApp
         {
             Console.WriteLine($"SynchronizationContext.Current {SynchronizationContext.Current?.ToString() ?? "null"}");
             Console.WriteLine($"ThreadId1 {Thread.CurrentThread.ManagedThreadId}");
-            Console.WriteLine("Main. Before DoSomething");
-            await DoSomething();
-            Console.WriteLine($"ThreadId6 {Thread.CurrentThread.ManagedThreadId}");
-            Console.WriteLine("Main. After DoSomething");
-        }
-
-        static async Task DoSomething()
-        {
-            Console.WriteLine("DoSomething start");
-            Console.WriteLine($"ThreadId2 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("Main. Before DoSomethingAsync");
             await DoSomethingAsync();
-            Console.WriteLine($"ThreadId5 {Thread.CurrentThread.ManagedThreadId}");
-            Console.WriteLine("DoSomething end");
+            Console.WriteLine($"ThreadId6 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("Main. After DoSomethingAsync");
         }
 
         static async Task DoSomethingAsync()
         {
             Console.WriteLine("DoSomethingAsync start");
+            Console.WriteLine($"ThreadId2 {Thread.CurrentThread.ManagedThreadId}");
+            await DoSomethingNestedAsync();
+            Console.WriteLine($"ThreadId5 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("DoSomethingAsync end");
+        }
+
+        static async Task DoSomethingNestedAsync()
+        {
+            Console.WriteLine("DoSomethingNestedAsync start");
             Console.WriteLine($"ThreadId3 {Thread.CurrentThread.ManagedThreadId}");
             await Task.Delay(2000);
             Console.WriteLine($"ThreadId4 {Thread.CurrentThread.ManagedThreadId}");
-            Console.WriteLine("DoSomethingAsync end");
+            Console.WriteLine("DoSomethingNestedAsync end");
         }
     }
 }
@@ -52,15 +52,63 @@ Output
 ```
 SynchronizationContext.Current null
 ThreadId1 1
-Main. Before DoSomething
-DoSomething start
-ThreadId2 1
+Main. Before DoSomethingAsync
 DoSomethingAsync start
+ThreadId2 1
+DoSomethingNestedAsync start
 ThreadId3 1
-ThreadId4 4
+ThreadId4 6
+DoSomethingNestedAsync end
+ThreadId5 6
 DoSomethingAsync end
-ThreadId5 4
-DoSomething end
-ThreadId6 4
-Main. After DoSomething
+ThreadId6 6
+Main. After DoSomethingAsync
+```
+
+```c#
+namespace ConsoleApp
+{
+    internal class Program
+    {
+        static async Task Main(string[] args)
+        {
+            Console.WriteLine($"SynchronizationContext.Current {SynchronizationContext.Current?.ToString() ?? "null"}");
+            Console.WriteLine($"ThreadId1 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("Main. Before DoSomethingAsync");
+            DoSomethingAsync(); // HERE NO AWAIT
+            Console.WriteLine($"ThreadId6 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("Main. After DoSomethingAsync");
+        }
+
+        static async Task DoSomethingAsync()
+        {
+            Console.WriteLine("DoSomethingAsync start");
+            Console.WriteLine($"ThreadId2 {Thread.CurrentThread.ManagedThreadId}");
+            await DoSomethingNestedAsync();
+            Console.WriteLine($"ThreadId5 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("DoSomethingAsync end");
+        }
+
+        static async Task DoSomethingNestedAsync()
+        {
+            Console.WriteLine("DoSomethingNestedAsync start");
+            Console.WriteLine($"ThreadId3 {Thread.CurrentThread.ManagedThreadId}");
+            await Task.Delay(2000);
+            Console.WriteLine($"ThreadId4 {Thread.CurrentThread.ManagedThreadId}");
+            Console.WriteLine("DoSomethingNestedAsync end");
+        }
+    }
+}
+```
+Output
+```
+SynchronizationContext.Current null
+ThreadId1 1
+Main. Before DoSomethingAsync
+DoSomethingAsync start
+ThreadId2 1
+DoSomethingNestedAsync start
+ThreadId3 1
+ThreadId6 1
+Main. After DoSomethingAsync
 ```
